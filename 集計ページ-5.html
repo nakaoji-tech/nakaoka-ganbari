@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>副教材 注文 集計ページ</title>
+<style>
+  :root{
+    --paper:#faf7ef; --paper-line:#e4dcc8; --ink:#2b2a28; --ink-soft:#6b6656;
+    --red:#a8352b; --red-soft:#c96155; --field:#ffffff; --field-border:#cfc6ab;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper);
+    background-image: linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    color:var(--ink);
+    font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "Meiryo", sans-serif;
+    line-height:1.6; padding: 24px 16px 80px;
+  }
+  .sheet{max-width: 880px; margin: 0 auto;}
+  .stamp{
+    display:inline-block; border:2px solid var(--red); color:var(--red);
+    font-weight:700; font-size:0.72rem; letter-spacing:0.15em; padding:3px 10px;
+    border-radius:2px; transform: rotate(-3deg); margin-bottom:10px;
+  }
+  h1{font-size:1.5rem; margin:0 0 4px; font-weight:700; border-bottom: 3px double var(--ink); padding-bottom:10px;}
+  .sub{color:var(--ink-soft); font-size:0.85rem; margin:0 0 20px;}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  label{font-size:0.75rem; color:var(--ink-soft);}
+  input[type=text], select{
+    font:inherit; padding:7px 8px; border:1px solid var(--field-border); border-radius:4px;
+    background:var(--field); color:var(--ink); width:100%;
+  }
+  button{
+    font:inherit; padding:9px 16px; border-radius:5px; border:1px solid var(--ink);
+    background:transparent; color:var(--ink); cursor:pointer; font-weight:600;
+  }
+  button:active{transform: translateY(1px);}
+  .filter-bar{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px;}
+  .filter-bar .field{min-width:200px;}
+  .agg-total{font-size:0.85rem; color:var(--ink-soft); margin-bottom:12px;}
+  .agg-total b{color:var(--red); font-size:1.1rem;}
+  .order-card{background:var(--field); border:1px solid var(--field-border); border-radius:8px; padding:12px 14px; margin-bottom:10px;}
+  .order-card .row1{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px;}
+  .order-card .school{font-weight:700; font-size:1rem;}
+  .order-card .staff-tag{
+    display:inline-block; font-size:0.7rem; color:var(--red); border:1px solid var(--red-soft);
+    border-radius:3px; padding:1px 6px; margin-left:6px;
+  }
+  .order-card .meta{font-size:0.78rem; color:var(--ink-soft); margin-top:4px;}
+  .order-card .amount{font-weight:700; color:var(--red-soft);}
+  .order-card details{margin-top:8px; font-size:0.8rem;}
+  .order-card summary{cursor:pointer; color:var(--ink-soft);}
+  .order-card .item-list{margin:6px 0 0; padding-left:18px;}
+  .empty-msg{color:var(--ink-soft); font-size:0.85rem; padding:20px 0; text-align:center;}
+  .trash-toggle{
+    display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--ink);
+    padding-bottom:9px;
+  }
+  .card-actions{margin-top:8px; display:flex; justify-content:flex-end;}
+  .delete-btn, .restore-btn{
+    font-size:0.72rem; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:600;
+  }
+  .delete-btn{border:1px solid var(--red-soft); color:var(--red);}
+  .restore-btn{border:1px solid var(--ink-soft); color:var(--ink-soft);}
+  .order-card.is-deleted{opacity:0.65; background:#f4efe2;}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <span class="stamp">副教材 発注</span>
+  <h1>集計ページ</h1>
+  <p class="sub">送信された注文を担当・学校名で絞り込んで確認できます。</p>
+  <p class="sub"><a href="注文フォーム.html" style="color:var(--red-soft); font-weight:600;">→ 注文フォームへ戻る</a></p>
+
+  <div class="filter-bar">
+    <div class="field">
+      <label for="staffFilter">担当で絞り込み</label>
+      <select id="staffFilter"><option value="">すべて表示</option></select>
+    </div>
+    <div class="field">
+      <label for="schoolFilter">学校名で検索</label>
+      <input type="text" id="schoolFilter" placeholder="学校名の一部でも可">
+    </div>
+    <button type="button" id="refreshBtn">更新</button>
+    <label class="trash-toggle">
+      <input type="checkbox" id="trashToggle"> ゴミ箱を表示
+    </label>
+  </div>
+
+  <div class="agg-total" id="aggTotal">読み込み中…</div>
+  <div id="orderList"></div>
+</div>
+
+<script>
+// ▼▼▼ Google Apps Script のデプロイURL（.../exec）をここに貼り付けてください ▼▼▼
+const API_URL = "https://script.google.com/macros/s/AKfycbx9AIpfi13fhfFkaitEcPxn-aTFKwx9sQffStSjgHkdhQaonB5r5GLRuz9pgQQGzRho/exec";
+// ▲▲▲ ここまで ▲▲▲
+
+const staffDistricts = {
+  "宮城大輔": [], "下地優成": [], "村山貴浩": [], "東恩納章裕": [], "中岡恵人": [], "仲尾次杏": [], "志茂誠太郎": []
+};
+
+const staffFilter = document.getElementById('staffFilter');
+Object.keys(staffDistricts).forEach(staff => {
+  const opt = document.createElement('option');
+  opt.value = staff; opt.textContent = staff;
+  staffFilter.appendChild(opt);
+});
+const unassignedOpt = document.createElement('option');
+unassignedOpt.value = "未割当"; unassignedOpt.textContent = "未割当（リストにない学校）";
+staffFilter.appendChild(unassignedOpt);
+
+let allOrders = [];
+
+async function loadOrders(){
+  const listEl = document.getElementById('orderList');
+  const aggTotalEl = document.getElementById('aggTotal');
+  listEl.innerHTML = "";
+  aggTotalEl.textContent = "読み込み中…";
+
+  if (!API_URL || API_URL.includes("ここに")) {
+    aggTotalEl.textContent = "取得先(API_URL)が未設定です。管理者にお伝えください。";
+    return;
+  }
+
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    allOrders = (data.orders || []).sort((a,b) => (b.submittedAt || "").localeCompare(a.submittedAt || ""));
+    renderOrders();
+  } catch (e) {
+    aggTotalEl.textContent = "読み込みに失敗しました。「更新」を押してもう一度お試しください。";
+  }
+}
+
+function renderOrders(){
+  const listEl = document.getElementById('orderList');
+  const aggTotalEl = document.getElementById('aggTotal');
+  const staffVal = staffFilter.value;
+  const schoolVal = document.getElementById('schoolFilter').value.trim();
+  const showTrash = document.getElementById('trashToggle').checked;
+
+  // ゴミ箱表示のときは削除済みだけ、通常表示は未削除だけを対象にする
+  let filtered = allOrders.filter(o => showTrash ? o.deleted : !o.deleted);
+  if (staffVal) filtered = filtered.filter(o => o.staff === staffVal);
+  if (schoolVal) filtered = filtered.filter(o => (o.school||"").includes(schoolVal));
+
+  const sumTotal = filtered.reduce((s,o) => s + (Number(o.total)||0), 0);
+  const sumStudents = filtered.reduce((s,o) => s + (o.headcount ? Number(o.headcount.studentTotal)||0 : 0), 0);
+  const sumTeachers = filtered.reduce((s,o) => s + (o.headcount ? Number(o.headcount.teacherTotal)||0 : 0), 0);
+
+  const label = showTrash ? "件（ゴミ箱）" : "件の注文";
+  aggTotalEl.innerHTML = `${filtered.length}${label} ／ 児童合計 ${sumStudents}人 ／ 教師合計 ${sumTeachers}人 ／ 金額合計 <b>${sumTotal.toLocaleString()}円</b>`;
+
+  listEl.innerHTML = "";
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-msg">${showTrash ? "ゴミ箱は空です。" : "該当する注文はまだありません。"}</div>`;
+    return;
+  }
+
+  filtered.forEach(o => {
+    const card = document.createElement('div');
+    card.className = 'order-card' + (o.deleted ? ' is-deleted' : '');
+    const itemRows = (o.items||[]).map(it =>
+      `<li>${it.styles && it.styles.length ? `[${it.styles.join("・")}] ` : ""}${it.name}${it.note ? `（${it.note}）` : ""} ×${it.qty} = ${Number(it.subtotal).toLocaleString()}円</li>`
+    ).join("");
+    const hc = o.headcount || {studentTotal:0, teacherTotal:0, grandTotal:0};
+    const actionBtn = showTrash
+      ? `<button type="button" class="restore-btn" data-id="${o.id}" data-action="restore">ゴミ箱から戻す</button>`
+      : `<button type="button" class="delete-btn" data-id="${o.id}" data-action="delete">削除</button>`;
+    card.innerHTML = `
+      <div class="row1">
+        <div><span class="school">${o.school || "(学校名未入力)"}</span><span class="staff-tag">${o.staff || "未割当"}</span></div>
+        <div class="amount">${(Number(o.total)||0).toLocaleString()}円</div>
+      </div>
+      <div class="meta">
+        ${o.date ? o.date + " ／ " : ""}${o.grade ? o.grade + " ／ " : ""}注文者：${o.orderer || "-"} ／ 児童${hc.studentTotal}人・教師${hc.teacherTotal}人
+        ${o.remarks ? `<br>備考：${o.remarks}` : ""}
+      </div>
+      <details>
+        <summary>注文品目（${(o.items||[]).length}件）を表示</summary>
+        <ul class="item-list">${itemRows}</ul>
+      </details>
+      <div class="card-actions">${actionBtn}</div>`;
+    listEl.appendChild(card);
+  });
+}
+
+async function setOrderDeleted(id, deleted){
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify({action: deleted ? "delete" : "restore", id})
+    });
+  } catch (e) {
+    // no-cors のため失敗判定はできない。楽観的に処理を続行する。
+  }
+}
+
+document.getElementById('orderList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  const order = allOrders.find(o => o.id === id);
+  if (!order) return;
+
+  if (action === "delete") {
+    if (!confirm(`「${order.school || "この注文"}」をゴミ箱に移動しますか？`)) return;
+    order.deleted = true;
+  } else if (action === "restore") {
+    order.deleted = false;
+  }
+  btn.disabled = true;
+  await setOrderDeleted(id, action === "delete");
+  renderOrders();
+});
+
+document.getElementById('trashToggle').addEventListener('change', renderOrders);
+staffFilter.addEventListener('change', renderOrders);
+document.getElementById('schoolFilter').addEventListener('input', renderOrders);
+document.getElementById('refreshBtn').addEventListener('click', loadOrders);
+
+loadOrders();
+</script>
+</body>
+</html>
