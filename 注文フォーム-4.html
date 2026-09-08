@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>副教材 注文フォーム</title>
+<style>
+  :root{
+    --paper:#faf7ef; --paper-line:#e4dcc8; --ink:#2b2a28; --ink-soft:#6b6656;
+    --red:#a8352b; --red-soft:#c96155; --field:#ffffff; --field-border:#cfc6ab;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper);
+    background-image: linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    color:var(--ink);
+    font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", "Meiryo", sans-serif;
+    line-height:1.6; padding: 24px 16px 80px;
+  }
+  .sheet{max-width: 880px; margin: 0 auto;}
+  .stamp{
+    display:inline-block; border:2px solid var(--red); color:var(--red);
+    font-weight:700; font-size:0.72rem; letter-spacing:0.15em; padding:3px 10px;
+    border-radius:2px; transform: rotate(-3deg); margin-bottom:10px;
+  }
+  h1{font-size:1.5rem; margin:0 0 4px; font-weight:700; border-bottom: 3px double var(--ink); padding-bottom:10px;}
+  .sub{color:var(--ink-soft); font-size:0.85rem; margin:0 0 10px;}
+  .progress{
+    font-size:0.78rem; color:var(--red-soft); font-weight:700; letter-spacing:0.03em;
+    margin-bottom:18px;
+  }
+  fieldset{
+    border:1px solid var(--field-border); border-radius:6px; padding:14px 16px 16px;
+    margin:0 0 18px; background: rgba(255,255,255,0.35);
+  }
+  legend{font-size:0.78rem; color:var(--ink-soft); padding:0 6px; font-weight:600; letter-spacing:0.05em;}
+  .header-grid{display:grid; grid-template-columns: 1fr; gap:10px 16px;}
+  @media (min-width:420px){.header-grid{grid-template-columns: repeat(2, 1fr);} .field.span2{grid-column: span 2;}}
+  @media (min-width:600px){.header-grid{grid-template-columns: repeat(4,1fr);}}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field.span2{grid-column: span 2;}
+  label{font-size:0.75rem; color:var(--ink-soft);}
+  textarea{
+    font-size:16px; padding:9px 8px; border:1px solid var(--field-border); border-radius:4px;
+    background:var(--field); color:var(--ink); width:100%; resize:vertical; line-height:1.5;
+  }
+  input[type=text], input[type=date], input[type=number]{
+    font-size:16px; padding:9px 8px; border:1px solid var(--field-border); border-radius:4px;
+    background:var(--field); color:var(--ink); width:100%; line-height:1.5;
+  }
+  .table-wrap{
+    width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:6px;
+  }
+  table{min-width:560px;}
+  .hint{font-size:0.75rem; color:var(--red-soft); min-height:1.1em; margin-top:2px;}
+  table{width:100%; border-collapse:collapse; font-size:0.85rem; background:var(--field); border-radius:6px; overflow:hidden;}
+  thead th{
+    background:#efe8d4; color:var(--ink); font-weight:700; text-align:left; padding:8px 6px;
+    font-size:0.72rem; letter-spacing:0.03em; border-bottom:1px solid var(--field-border); white-space:nowrap;
+  }
+  tbody td{padding:8px 6px; border-bottom:1px solid #ece5d2; vertical-align:middle;}
+  tbody tr:hover{background:#fbf6e8;}
+  .grade{color:var(--ink-soft); font-size:0.78rem; white-space:nowrap;}
+  .name{font-weight:600;}
+  .note{color:var(--ink-soft); font-size:0.72rem; display:block; margin-top:2px;}
+  .price{white-space:nowrap; font-variant-numeric: tabular-nums;}
+  .qty-input{width:64px; padding:9px 4px; text-align:center; border:1px solid var(--field-border); border-radius:4px; font-size:16px;}
+  .style-toggles{display:flex; gap:16px; margin-top:8px;}
+  .style-checkbox{
+    display:flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:600;
+    color:var(--ink); cursor:pointer; padding:6px 4px; margin:-6px -4px;
+  }
+  .style-checkbox input[type=checkbox]{
+    width:22px; height:22px; accent-color:var(--red); cursor:pointer;
+  }
+  .subtotal{text-align:right; color:var(--red-soft); font-weight:600;}
+  .summary{
+    position:sticky; bottom:0; margin-top:22px; background:var(--paper); border-top:2px solid var(--ink);
+    padding:14px 4px 4px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .total-label{font-size:0.85rem; color:var(--ink-soft);}
+  .total-amount{font-size:1.9rem; font-weight:700; color:var(--red);}
+  .actions{display:flex; gap:10px;}
+  button{
+    font:inherit; padding:12px 20px; border-radius:5px; border:1px solid var(--ink);
+    background:var(--ink); color:var(--paper); cursor:pointer; font-weight:600;
+    min-height:44px;
+  }
+  button.secondary{background:transparent; color:var(--ink);}
+  button:disabled{opacity:0.5; cursor:default;}
+  button:active{transform: translateY(1px);}
+  .status{font-size:0.78rem; color:var(--ink-soft); margin-top:6px; min-height:1.2em;}
+
+  .step{display:none;}
+  .step.active{display:block;}
+  .nav-actions{display:flex; justify-content:space-between; align-items:center; margin-top:4px;}
+  .grade-grid{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;}
+  @media (min-width:420px){.grade-grid{gap:12px;}}
+  @media (min-width:500px){.grade-grid{grid-template-columns: repeat(6,1fr);}}
+  .grade-btn{
+    padding:20px 6px; border-radius:8px; border:1px solid var(--field-border);
+    background:var(--field); color:var(--ink); font-size:1.05rem; font-weight:700;
+    cursor:pointer; text-align:center;
+  }
+  .grade-btn.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .selected-grade-note{font-size:0.85rem; color:var(--ink-soft); margin-bottom:14px;}
+  .selected-grade-note b{color:var(--red);}
+
+  @media print{body{background:#fff;} .actions, .summary button, .nav-actions, .progress{display:none;} .step{display:block !important;}}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <span class="stamp">副教材 発注</span>
+  <h1>注文フォーム</h1>
+  <p class="sub">基本情報を入力し、学年を選ぶと、その学年で使う品目だけが表示されます。</p>
+  <p class="sub"><a href="集計ページ.html" style="color:var(--red-soft); font-weight:600;">→ 集計ページを見る</a></p>
+  <div class="progress" id="progressLabel">ステップ 1 / 3：基本情報</div>
+
+  <!-- STEP 1: 基本情報 -->
+  <div class="step active" id="step1">
+    <fieldset>
+      <legend>基本情報</legend>
+      <div class="header-grid">
+        <div class="field">
+          <label for="date">注文日</label>
+          <input type="date" id="date" name="date">
+        </div>
+        <div class="field span2">
+          <label for="school">小学校名</label>
+          <input type="text" id="school" name="school" placeholder="〇〇小学校">
+          <span class="hint" id="staffHint"></span>
+        </div>
+        <div class="field span2">
+          <label for="orderer">注文者（氏名）</label>
+          <input type="text" id="orderer" name="orderer" placeholder="氏名">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>学級別人数</legend>
+      <div class="header-grid">
+        <div class="field"><label for="class1">1組（児童用）</label><input type="number" min="0" step="1" value="0" id="class1" class="class-input"></div>
+        <div class="field"><label for="class2">2組（児童用）</label><input type="number" min="0" step="1" value="0" id="class2" class="class-input"></div>
+        <div class="field"><label for="class3">3組（児童用）</label><input type="number" min="0" step="1" value="0" id="class3" class="class-input"></div>
+        <div class="field"><label for="class4">4組（児童用）</label><input type="number" min="0" step="1" value="0" id="class4" class="class-input"></div>
+        <div class="field"><label for="class5">5組（児童用）</label><input type="number" min="0" step="1" value="0" id="class5" class="class-input"></div>
+        <div class="field"><label for="class6">6組（児童用）</label><input type="number" min="0" step="1" value="0" id="class6" class="class-input"></div>
+        <div class="field"><label for="teacherCount">教師用</label><input type="number" min="0" step="1" value="0" id="teacherCount"></div>
+      </div>
+      <div class="status" id="headcountSummary" style="color:var(--ink);">児童用合計 0人 ／ 教師用合計 0人 ／ 総合計 0人</div>
+    </fieldset>
+
+    <div class="nav-actions">
+      <span></span>
+      <button type="button" id="toStep2Btn">次へ（学年を選ぶ）</button>
+    </div>
+    <div class="status" id="step1Status"></div>
+  </div>
+
+  <!-- STEP 2: 学年選択 -->
+  <div class="step" id="step2">
+    <fieldset>
+      <legend>学年を選択</legend>
+      <div class="grade-grid" id="gradeGrid"></div>
+    </fieldset>
+    <div class="nav-actions">
+      <button type="button" class="secondary" id="backToStep1Btn">戻る</button>
+      <button type="button" id="toStep3Btn">次へ（品目を選ぶ）</button>
+    </div>
+    <div class="status" id="step2Status"></div>
+  </div>
+
+  <!-- STEP 3: 品目選択 -->
+  <div class="step" id="step3">
+    <div class="selected-grade-note" id="selectedGradeNote"></div>
+    <fieldset>
+      <legend>注文品目</legend>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>学年</th><th>商品名</th><th>価格</th><th>数量</th><th>小計</th></tr></thead>
+        <tbody id="itemBody"></tbody>
+      </table>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label for="remarks">備考</label>
+        <textarea id="remarks" name="remarks" rows="3" placeholder="伝えたいことがあれば自由に入力してください"></textarea>
+      </div>
+    </fieldset>
+
+    <div class="summary">
+      <div>
+        <div class="total-label">合計金額</div>
+        <div class="total-amount" id="totalAmount">0円</div>
+      </div>
+      <div class="actions">
+        <button type="button" class="secondary" id="printBtn">印刷 / PDF保存</button>
+        <button type="button" id="submitBtn">この内容で注文する</button>
+      </div>
+    </div>
+    <div class="nav-actions" style="margin-top:10px;">
+      <button type="button" class="secondary" id="backToStep2Btn">戻る（学年を選び直す）</button>
+      <span></span>
+    </div>
+    <div class="status" id="statusMsg"></div>
+  </div>
+</div>
+
+<script>
+// ▼▼▼ Google Apps Script のデプロイURL（.../exec）をここに貼り付けてください ▼▼▼
+const API_URL = "https://script.google.com/macros/s/AKfycbx9AIpfi13fhfFkaitEcPxn-aTFKwx9sQffStSjgHkdhQaonB5r5GLRuz9pgQQGzRho/exec";
+// ▲▲▲ ここまで ▲▲▲
+
+const staffDistricts = {
+  "宮城大輔": ["垣花","小禄","小禄南","金城","さつき","開南","那覇","泊","若狭","天妃","壺屋","城岳","神原","与儀","古蔵","真和志","上間","識名","仲井真","真地","瀬喜田","東江","名護","大宮","みらい支援","那覇支援"],
+  "下地優成": ["天久","銘苅","真嘉比","大道","松川","城西","城南","城東","城北","石嶺","大名","松島","安謝","内間","神森","宮城","仲西","浦添","前田","沢岻","今帰仁","天底","兼次","伊豆味","上本部","大平支援"],
+  "村山貴浩": ["白川","東風平","津嘉山","新城","具志頭","南風原","翔南","北丘","大里南","大里北","与那原","与那原東","馬天","佐敷","知念","百名","玉城","船越","坂田","西原","西原南","西原東","大北","稲田","羽地","島尻支援","盲学校"],
+  "東恩納章裕": ["港川","牧港","当山","浦城","嘉数","志真志","宜野湾","長田","カトリック","普天間","普天間第二","琉大付属","北中城","北中城村立島袋","沖縄市立島袋","山内","中の町","コザ","諸見","安慶田","室川","宜野座","松田","久辺","久志","有銘","東","三育","ろう","ワールドミッション","鏡ヶ丘支援"],
+  "中岡恵人": ["大謝名","大山","はごろも","北谷","北谷第二","北玉","浜川","嘉手納","屋良","古堅","古堅南","喜名","読谷","渡慶次","越来","美里","美原","北美","宮里","山田","仲泊","恩納","安富祖","本部","瀬底","屋部","屋部中山分校","安和","桜野支援","美咲支援","森川支援"],
+  "仲尾次杏": ["とよみ","長嶺","豊見城","上田","ゆたか","伊良波","座安","豊崎","喜屋武","米須","真壁","高嶺","兼城","糸満","糸満南","光洋","西崎","潮平","大度分校","高良","宇栄原","屋我地","真喜屋","大宜味","奥間","辺土名","西崎支援"],
+  "志茂誠太郎": ["中城南","津覇","中城","高江洲","南原","勝連","平敷屋","与那城","彩橋","高原","美東","泡瀬","比屋根","赤道","中原","兼原","あげな","川崎","天願","田場","具志川","城前","宮森","伊波","アミークス","嘉芸","金武","中川","漢那","泡瀬支援"]
+};
+const schoolToStaff = {};
+Object.entries(staffDistricts).forEach(([staff, schools]) => { schools.forEach(s => { schoolToStaff[s] = staff; }); });
+function findStaffForSchool(rawName){
+  if (!rawName) return null;
+  const key = rawName.trim().replace(/小学校$/, "").trim();
+  if (!key) return null;
+  if (schoolToStaff[key]) return schoolToStaff[key];
+  const match = Object.keys(schoolToStaff).find(name => key.includes(name) || name.includes(key));
+  return match ? schoolToStaff[match] : null;
+}
+
+// grade: 表示用ラベル／ grades: 絞り込みに使う実際の学年（数値）の配列
+const items = [
+  {grade:"3年〜6年", name:"算数の友", price:530, styles:["上","下"], grades:[3,4,5,6]},
+  {grade:"3年〜6年", name:"理科ノート", price:580, styles:["上","下"], grades:[3,4,5,6]},
+  {grade:"3年〜6年", name:"理科テスト", price:430, styles:["上","下"], grades:[3,4,5,6]},
+  {grade:"3年・4年", name:"理科テスト", note:"島尻・八重山は5・6年なし", price:430, styles:["上","下"], grades:[3,4]},
+  {grade:"3年〜6年", name:"理科プレテスト", price:80, styles:["上","下"], grades:[3,4,5,6]},
+  {grade:"3年・4年", name:"理科プレテスト", price:80, styles:["上","下"], grades:[3,4]},
+  {grade:"3年〜4年", name:"沖縄の理科", note:"年刊／5・6年なし", price:600, grades:[3,4]},
+  {grade:"3年〜6年", name:"社会科ノート", note:"中頭は5・6年なし", price:580, styles:["上","下"], grades:[3,4,5,6]},
+  {grade:"3年・4年", name:"社会科テスト", price:430, styles:["上","下"], grades:[3,4]},
+  {grade:"3年", name:"社会科テスト", note:"年刊／那覇市・浦添市・沖縄市・うるま市・石垣市", price:800, grades:[3]},
+  {grade:"4年", name:"社会科テスト", note:"年刊／那覇市・浦添市・石垣市", price:800, grades:[4]},
+  {grade:"4年", name:"ひらけゆく沖縄県", note:"年刊", price:630, grades:[4]},
+  {grade:"5年・6年", name:"家庭科ノート（テスト付）", note:"年刊", price:580, grades:[5,6]},
+  {grade:"3年・4年", name:"ほけんノート（テスト付）", note:"年刊", price:320, grades:[3,4]},
+  {grade:"5年・6年", name:"保健ノート（テスト付）", note:"年刊", price:410, grades:[5,6]},
+  {grade:"1年・2年", name:"たのしいせいかつ", price:510, styles:["上","下"], grades:[1,2]},
+  {grade:"16マス", name:"ちばりよーノート", note:"緑", price:140, grades:[1,2,3,4,5,6]},
+  {grade:"16マス", name:"ちばりよーノート", note:"オレンジ", price:140, grades:[1,2,3,4,5,6]},
+  {grade:"5mm方眼", name:"ちばりよーノート", note:"紫", price:140, grades:[1,2,3,4,5,6]},
+  {grade:"5mm方眼", name:"ちばりよーノート", note:"黄", price:140, grades:[1,2,3,4,5,6]},
+  {grade:"5mm方眼", name:"ちばりよーノート", note:"青", price:140, grades:[1,2,3,4,5,6]},
+  {grade:"5mm方眼", name:"ちばりよーノート", note:"ピンク", price:140, grades:[1,2,3,4,5,6]},
+  {grade:"3年〜4年", name:"宅習ノート", price:110, grades:[3,4]},
+  {grade:"3年〜6年", name:"新聞用紙", price:20, grades:[3,4,5,6]},
+];
+
+// 上・下（複数選択可）の選択状態を品目ごとに保持
+let itemStyleState = items.map(item => item.styles ? new Set(item.styles) : null); // デフォルトは両方選択済み
+let selectedGrade = null;
+
+const schoolInput = document.getElementById('school');
+const staffHint = document.getElementById('staffHint');
+schoolInput.addEventListener('input', () => {
+  const staff = findStaffForSchool(schoolInput.value);
+  staffHint.textContent = staff ? `担当：${staff}` : (schoolInput.value.trim() ? "担当が見つかりませんでした（リストにない学校名の可能性があります）" : "");
+});
+
+function recalcHeadcount(){
+  const classInputs = document.querySelectorAll('.class-input');
+  let studentTotal = 0;
+  classInputs.forEach(input => { studentTotal += parseInt(input.value, 10) || 0; });
+  const teacherTotal = parseInt(document.getElementById('teacherCount').value, 10) || 0;
+  const grandTotal = studentTotal + teacherTotal;
+  document.getElementById('headcountSummary').textContent =
+    `児童用合計 ${studentTotal}人 ／ 教師用合計 ${teacherTotal}人 ／ 総合計 ${grandTotal}人`;
+  return {studentTotal, teacherTotal, grandTotal};
+}
+document.querySelectorAll('.class-input').forEach(input => input.addEventListener('input', recalcHeadcount));
+document.getElementById('teacherCount').addEventListener('input', recalcHeadcount);
+recalcHeadcount();
+
+// ---------- ステップ切り替え ----------
+function showStep(n){
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  const labels = {1:"基本情報", 2:"学年を選択", 3:"品目を選択"};
+  document.getElementById('progressLabel').textContent = `ステップ ${n} / 3：${labels[n]}`;
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+document.getElementById('toStep2Btn').addEventListener('click', () => {
+  const status = document.getElementById('step1Status');
+  const school = schoolInput.value.trim();
+  const orderer = document.getElementById('orderer').value.trim();
+  if (!school || !orderer) {
+    status.textContent = "「小学校名」と「注文者」を入力してください。";
+    status.style.color = "var(--red)";
+    return;
+  }
+  status.textContent = "";
+  showStep(2);
+});
+
+document.getElementById('backToStep1Btn').addEventListener('click', () => showStep(1));
+document.getElementById('backToStep2Btn').addEventListener('click', () => showStep(2));
+
+// ---------- 学年選択ボタン ----------
+const gradeGrid = document.getElementById('gradeGrid');
+for (let g = 1; g <= 6; g++){
+  const btn = document.createElement('button');
+  btn.type = "button";
+  btn.className = "grade-btn";
+  btn.textContent = `${g}年`;
+  btn.dataset.grade = g;
+  btn.addEventListener('click', () => {
+    selectedGrade = g;
+    document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('step2Status').textContent = "";
+  });
+  gradeGrid.appendChild(btn);
+}
+
+document.getElementById('toStep3Btn').addEventListener('click', () => {
+  const status = document.getElementById('step2Status');
+  if (!selectedGrade) {
+    status.textContent = "学年を選択してください。";
+    status.style.color = "var(--red)";
+    return;
+  }
+  status.textContent = "";
+  buildItemsTable();
+  showStep(3);
+});
+
+// ---------- 品目テーブル（選択した学年で絞り込み） ----------
+const tbody = document.getElementById('itemBody');
+const totalEl = document.getElementById('totalAmount');
+
+function buildItemsTable(){
+  document.getElementById('selectedGradeNote').innerHTML = `選択中の学年：<b>${selectedGrade}年</b>`;
+  itemStyleState = items.map(item => item.styles ? new Set(item.styles) : null);
+  tbody.innerHTML = "";
+  items.forEach((item, idx) => {
+    if (!item.grades.includes(selectedGrade)) return;
+    const tr = document.createElement('tr');
+    const noteHtml = item.note ? `<span class="note">${item.note}</span>` : "";
+    let styleHtml = "";
+    if (item.styles) {
+      const boxes = item.styles.map(s => {
+        const checked = itemStyleState[idx].has(s) ? "checked" : "";
+        return `<label class="style-checkbox"><input type="checkbox" data-idx="${idx}" data-style="${s}" ${checked}><span>${s}</span></label>`;
+      }).join("");
+      styleHtml = `<div class="style-toggles">${boxes}</div>`;
+    }
+    tr.innerHTML = `
+      <td class="grade">${item.grade}</td>
+      <td><span class="name">${item.name}</span>${noteHtml}${styleHtml}</td>
+      <td class="price">${item.price.toLocaleString()}円</td>
+      <td><input type="number" min="0" step="1" value="0" class="qty-input" data-idx="${idx}"></td>
+      <td class="subtotal" data-sub="${idx}">0円</td>`;
+    tbody.appendChild(tr);
+  });
+  recalc();
+}
+
+tbody.addEventListener('change', (e) => {
+  const cb = e.target.closest('input[type=checkbox][data-style]');
+  if (!cb) return;
+  const idx = cb.dataset.idx;
+  const style = cb.dataset.style;
+  const set = itemStyleState[idx];
+  if (cb.checked) set.add(style); else set.delete(style);
+  recalc();
+});
+
+function recalc(){
+  let total = 0;
+  document.querySelectorAll('.qty-input').forEach(input => {
+    const idx = input.dataset.idx;
+    const qty = parseInt(input.value, 10) || 0;
+    const units = items[idx].styles ? itemStyleState[idx].size : 1;
+    const sub = qty * items[idx].price * units;
+    total += sub;
+    document.querySelector(`[data-sub="${idx}"]`).textContent = sub.toLocaleString() + "円";
+  });
+  totalEl.textContent = total.toLocaleString() + "円";
+  return total;
+}
+tbody.addEventListener('input', recalc);
+
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  const status = document.getElementById('statusMsg');
+  const submitBtn = document.getElementById('submitBtn');
+  const school = schoolInput.value.trim();
+  const orderer = document.getElementById('orderer').value.trim();
+  const grade = selectedGrade ? `${selectedGrade}年` : "";
+  const date = document.getElementById('date').value;
+  const remarks = document.getElementById('remarks').value.trim();
+
+  const orderedItems = [];
+  let missingStyleSelection = false;
+  document.querySelectorAll('.qty-input').forEach(input => {
+    const qty = parseInt(input.value, 10) || 0;
+    if (qty > 0){
+      const idx = input.dataset.idx;
+      const item = items[idx];
+      const selectedStyles = item.styles ? Array.from(itemStyleState[idx]) : null;
+      if (item.styles && selectedStyles.length === 0) { missingStyleSelection = true; return; }
+      const units = item.styles ? selectedStyles.length : 1;
+      orderedItems.push({
+        name: item.name,
+        styles: selectedStyles,
+        note: item.note || null,
+        qty, price: item.price,
+        subtotal: qty * item.price * units
+      });
+    }
+  });
+
+  if (missingStyleSelection) { status.textContent = "数量を入力した品目のうち、上・下のどちらも選択されていないものがあります。"; status.style.color = "var(--red)"; return; }
+  if (orderedItems.length === 0) { status.textContent = "数量が1件も入力されていません。"; status.style.color = "var(--red)"; return; }
+  if (!API_URL || API_URL.includes("ここに")) {
+    status.textContent = "送信先(API_URL)が未設定です。管理者にお伝えください。";
+    status.style.color = "var(--red)";
+    return;
+  }
+
+  const headcount = recalcHeadcount();
+  const total = recalc();
+  const staff = findStaffForSchool(school);
+  const order = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    submittedAt: new Date().toISOString(),
+    date, school, staff: staff || "未割当", grade, orderer, remarks,
+    headcount, total, items: orderedItems
+  };
+
+  submitBtn.disabled = true;
+  status.textContent = "送信中…";
+  status.style.color = "var(--ink-soft)";
+
+  try {
+    // Google Apps Script のPOSTはリダイレクトを挟むため、CORSで詰まらないよう
+    // no-cors で送信する（応答内容は読めないが、送信自体は完了する）
+    await fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify(order)
+    });
+    status.textContent = `送信しました。（担当：${order.staff}）集計ページから確認できます。`;
+    status.style.color = "var(--ink-soft)";
+  } catch (e) {
+    status.textContent = "送信エラーが発生しました。ネットワークやURL設定をご確認ください。";
+    status.style.color = "var(--red)";
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
